@@ -1,0 +1,360 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl" data-theme="dark">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Asset & License Tracker | מעקב ציוד ורישיונות</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Assistant:wght@300;400;600;700;800&family=JetBrains+Mono:wght@400;600&display=swap" rel="stylesheet">
+</head>
+<body>
+
+  <!-- Toast Notification Container -->
+  <div id="toast-container" class="toast-container" aria-live="polite"></div>
+
+  <!-- Header -->
+  <header class="app-header">
+    <div class="header-content">
+      <div class="logo-area">
+        <div class="logo-icon">
+          <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <rect x="2" y="3" width="20" height="14" rx="2" ry="2"></rect>
+            <line x1="8" y1="21" x2="16" y2="21"></line>
+            <line x1="12" y1="17" x2="12" y2="21"></line>
+          </svg>
+        </div>
+        <div>
+          <h1 class="app-title">Asset & License Tracker</h1>
+          <p class="app-subtitle">מערכת ארגונית לניהול מלאי מחשוב, הקצאות ציוד ורישיונות תוכנה</p>
+        </div>
+      </div>
+
+      <div class="header-actions">
+        <!-- Dark / Light Mode Toggle -->
+        <button id="theme-toggle" class="btn btn-secondary icon-btn" title="החלף מצב תצוגה (Dark/Light)">
+          <span class="theme-icon-dark">🌙</span>
+          <span class="theme-icon-light">☀️</span>
+          <span class="btn-text">מצב תצוגה</span>
+        </button>
+
+        <!-- Reset to Default Data -->
+        <button id="btn-reset-data" class="btn btn-outline" title="אפס נתונים למאגר ה-CSV הראשוני">
+          🔄 שחזר מאגר מקורי
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="main-container">
+
+    <!-- KPI / Statistics Summary Cards -->
+    <section class="stats-grid">
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">סה"כ פריטים במאגר</span>
+          <span class="stat-badge purple">Total</span>
+        </div>
+        <div class="stat-value" id="stat-total">0</div>
+        <div class="stat-desc">חומרה ורישיונות תוכנה</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">פנויים להשאלה</span>
+          <span class="stat-badge green">Available</span>
+        </div>
+        <div class="stat-value text-success" id="stat-available">0</div>
+        <div class="stat-desc">זמינים להקצאה מיידית</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">מושאלים / משויכים</span>
+          <span class="stat-badge blue">Assigned</span>
+        </div>
+        <div class="stat-value text-info" id="stat-assigned">0</div>
+        <div class="stat-desc">נמצאים בשימוש עובדים</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">בתיקון / הושבתו</span>
+          <span class="stat-badge orange">Maintenance</span>
+        </div>
+        <div class="stat-value text-warning" id="stat-maintenance">0</div>
+        <div class="stat-desc">Under Repair / Retired</div>
+      </div>
+
+      <div class="stat-card">
+        <div class="stat-header">
+          <span class="stat-label">פגי תוקף</span>
+          <span class="stat-badge red">Expired</span>
+        </div>
+        <div class="stat-value text-danger" id="stat-expired">0</div>
+        <div class="stat-desc">נדרש חידוש רישיון</div>
+      </div>
+    </section>
+
+    <!-- Operations Action Bar (CLI Equivalent Options) -->
+    <section class="operations-bar">
+      <div class="ops-title-group">
+        <span class="ops-badge">CLI Actions</span>
+        <h2>פעולות מערכת</h2>
+      </div>
+      <div class="actions-wrapper">
+        <button id="btn-open-checkout" class="btn btn-primary">
+          <span class="btn-icon">📤</span>
+          <span>[2] השאלת ציוד / שיוך רישיון</span>
+        </button>
+        <button id="btn-open-return" class="btn btn-secondary">
+          <span class="btn-icon">📥</span>
+          <span>[3] החזרת ציוד ועדכון סטטוס</span>
+        </button>
+        <button id="btn-open-report" class="btn btn-accent">
+          <span class="btn-icon">📑</span>
+          <span>[4] דוח ציוד חסר ופג תוקף (TXT)</span>
+        </button>
+        <button id="btn-open-add" class="btn btn-purple">
+          <span class="btn-icon">➕</span>
+          <span>[5] הוספת פריט או רישיון חדש</span>
+        </button>
+        <button id="btn-export-csv" class="btn btn-outline" title="שמור והורד את קובץ ה-CSV המעודכן">
+          <span class="btn-icon">💾</span>
+          <span>[6] ייצוא וסנכרון CSV</span>
+        </button>
+      </div>
+    </section>
+
+    <!-- Inventory Table Section [1] View All -->
+    <section class="table-section">
+      <div class="table-toolbar">
+        <div class="toolbar-title">
+          <h3>[1] מאגר ציוד ורישיונות (Inventory View)</h3>
+          <span id="items-count-badge" class="count-pill">9 פריטים</span>
+        </div>
+
+        <div class="filters-group">
+          <!-- Search Box -->
+          <div class="search-box">
+            <span class="search-icon">🔍</span>
+            <input type="text" id="search-input" placeholder="חיפוש לפי שם, עובד או מזהה ID...">
+          </div>
+
+          <!-- Filter by Type -->
+          <select id="filter-type" class="select-control">
+            <option value="ALL">כל הסוגים</option>
+            <option value="Hardware">חומרה (Hardware)</option>
+            <option value="Software License">רישיון תוכנה (Software)</option>
+          </select>
+
+          <!-- Filter by Status -->
+          <select id="filter-status" class="select-control">
+            <option value="ALL">כל הסטטוסים</option>
+            <option value="Available">Available (פנוי)</option>
+            <option value="Assigned">Assigned (מושאל)</option>
+            <option value="Under Repair">Under Repair (בתיקון)</option>
+            <option value="Retired">Retired (הושבת)</option>
+          </select>
+        </div>
+      </div>
+
+      <!-- Data Table -->
+      <div class="table-responsive">
+        <table class="inventory-table" id="inventory-table">
+          <thead>
+            <tr>
+              <th style="width: 70px;">מזהה (ID)</th>
+              <th>שם הפריט / רישיון</th>
+              <th>סוג</th>
+              <th>סטטוס תפעולי</th>
+              <th>משויך לעובד</th>
+              <th>תאריך תפוגה</th>
+              <th style="width: 140px; text-align: center;">פעולות מהירות</th>
+            </tr>
+          </thead>
+          <tbody id="inventory-table-body">
+            <!-- Rendered by JavaScript -->
+          </tbody>
+        </table>
+      </div>
+      <div id="no-results-msg" class="empty-state hidden">
+        <div class="empty-icon">📦</div>
+        <h4>לא נמצאו פריטים תואמים</h4>
+        <p>נסה לשנות את מונח החיפוש או לאפס את הסינונים</p>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ==================== MODALS ==================== -->
+
+  <!-- Modal [2]: Checkout Equipment / Assign License -->
+  <div id="modal-checkout" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon purple">📤</span>
+          <h3>[2] השאלת ציוד / שיוך רישיון לעובד</h3>
+        </div>
+        <button class="modal-close" data-close="modal-checkout">&times;</button>
+      </div>
+      <form id="form-checkout" class="modal-body">
+        <p class="modal-instruction">בחר פריט זמין מתוך המאגר והזן את שם העובד שיקבל את השיוך:</p>
+
+        <div class="form-group">
+          <label for="checkout-item-select">בחר פריט פנוי להשאלה (Available בלבד) *</label>
+          <select id="checkout-item-select" class="form-control" required>
+            <!-- Populated dynamically -->
+          </select>
+          <span class="field-hint" id="checkout-item-info"></span>
+        </div>
+
+        <div class="form-group">
+          <label for="checkout-employee-name">שם עובד להקצאה *</label>
+          <input type="text" id="checkout-employee-name" class="form-control" placeholder="למשל: דנה כהן / Alex Murphy" required>
+        </div>
+
+        <div id="checkout-warning-box" class="alert-box warning hidden"></div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-checkout">ביטול</button>
+          <button type="submit" class="btn btn-primary">בצע שיוך פריט</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal [3]: Return Equipment / Update Status -->
+  <div id="modal-return" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon secondary">📥</span>
+          <h3>[3] החזרת ציוד ועדכון סטטוס</h3>
+        </div>
+        <button class="modal-close" data-close="modal-return">&times;</button>
+      </div>
+      <form id="form-return" class="modal-body">
+        <div class="form-group">
+          <label for="return-item-select">בחר פריט להחזרה / עדכון *</label>
+          <select id="return-item-select" class="form-control" required>
+            <!-- Populated dynamically -->
+          </select>
+          <div id="return-current-details" class="item-preview-badge"></div>
+        </div>
+
+        <div class="form-group">
+          <label for="return-new-status">סטטוס חדש לאחר ההחזרה *</label>
+          <select id="return-new-status" class="form-control" required>
+            <option value="Available">Available (פנוי לשימוש מחדש)</option>
+            <option value="Under Repair">Under Repair (נשלח לתיקון / חסר)</option>
+            <option value="Retired">Retired (הושבת / הוצא משימוש לצמיתות)</option>
+          </select>
+          <span class="field-hint">השיוך לעובד יאופס אוטומטית ל-"None".</span>
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-return">ביטול</button>
+          <button type="submit" class="btn btn-secondary">עדכן סטטוס והחזר</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Modal [4]: Export Missing / Expired Report -->
+  <div id="modal-report" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card modal-large">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon accent">📑</span>
+          <h3>[4] דוח ציוד חסר, פג תוקף ופעולות נדרשות</h3>
+        </div>
+        <button class="modal-close" data-close="modal-report">&times;</button>
+      </div>
+      <div class="modal-body">
+        <div class="report-meta-box">
+          <div><strong>סטטוס ביקורת:</strong> זוהו <span id="report-issues-count" class="highlight-count">0</span> פריטים הדורשים טיפול מיידי</div>
+          <div><strong>תאריך הפקה:</strong> <span id="report-timestamp">-</span></div>
+        </div>
+
+        <div class="report-code-wrap">
+          <pre id="report-text-preview" class="report-pre"></pre>
+        </div>
+
+        <div class="modal-footer report-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-report">סגור</button>
+          <button id="btn-copy-report" class="btn btn-secondary">
+            📋 העתק ללוח
+          </button>
+          <button id="btn-download-report-txt" class="btn btn-accent">
+            💾 הורד קובץ missing_expired_report.txt
+          </button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal [5]: Add New Asset / License -->
+  <div id="modal-add" class="modal-overlay hidden" role="dialog" aria-modal="true">
+    <div class="modal-card">
+      <div class="modal-header">
+        <div class="modal-title-wrap">
+          <span class="modal-icon purple">➕</span>
+          <h3>[5] הוספת פריט או רישיון חדש למלאי</h3>
+        </div>
+        <button class="modal-close" data-close="modal-add">&times;</button>
+      </div>
+      <form id="form-add-item" class="modal-body">
+        <div class="form-group">
+          <label for="add-name">שם הפריט או הרישיון *</label>
+          <input type="text" id="add-name" class="form-control" placeholder="למשל: Dell 27-inch 4K Monitor או Jira Software" required>
+        </div>
+
+        <div class="form-group">
+          <label for="add-type">סוג הפריט *</label>
+          <select id="add-type" class="form-control" required>
+            <option value="Hardware">חומרה (Hardware)</option>
+            <option value="Software License">רישיון תוכנה (Software License)</option>
+          </select>
+        </div>
+
+        <!-- Expiration options for Software -->
+        <div id="add-expiration-group" class="expiration-toggle-group hidden">
+          <div class="checkbox-line">
+            <input type="checkbox" id="add-has-exp">
+            <label for="add-has-exp">האם לרישיון זה יש תאריך תפוגה מוגדר?</label>
+          </div>
+
+          <div id="add-date-input-wrap" class="form-group hidden" style="margin-top: 10px;">
+            <label for="add-exp-date">תאריך תפוגה (YYYY-MM-DD) *</label>
+            <input type="date" id="add-exp-date" class="form-control">
+          </div>
+        </div>
+
+        <div class="info-callout">
+          פריט חדש יקבל אוטומטית מזהה עוקב (ID: <span id="add-next-id-preview">10</span>), סטטוס ראשוני <strong>Available</strong>, ושיוך פנוי <strong>None</strong>.
+        </div>
+
+        <div class="modal-footer">
+          <button type="button" class="btn btn-outline" data-close="modal-add">ביטול</button>
+          <button type="submit" class="btn btn-purple">הוסף פריט למאגר</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- Footer -->
+  <footer class="app-footer">
+    <div class="footer-content">
+      <span>Asset & License Tracker Web Edition &bull; מבוסס על finalproject05 (CLI) &bull; Client-Side Only</span>
+      <span>נתונים נשמרים ב-LocalStorage ומסונכרנים עם CSV</span>
+    </div>
+  </footer>
+
+  <script src="app.js"></script>
+</body>
+</html>
+
